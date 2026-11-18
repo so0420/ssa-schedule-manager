@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('일정 등록 - TeamSchedule')}"></head>
+<body>
+<div class="app-container">
+    <nav th:replace="~{fragments :: sidebar}"></nav>
+    <div class="main-content">
+        <header th:replace="~{fragments :: header(${schedule != null ? '일정 수정' : '새 일정 등록'})}"></header>
+        <div class="content">
+
+            <div class="card" style="max-width: 640px;">
+                <div class="card-header">
+                    <h3 class="card-title" th:text="${schedule != null ? '일정 수정' : '새 일정 등록'}">일정 등록</h3>
+                </div>
+                <div class="card-body">
+                    <form th:action="${schedule != null ? '/schedule/' + schedule.id + '/edit' : '/schedule/new'}"
+                          method="post">
+                        <div class="form-group">
+                            <label class="form-label">일정명 *</label>
+                            <input type="text" name="title" class="form-control"
+                                   th:value="${schedule != null ? schedule.title : ''}"
+                                   placeholder="일정명을 입력하세요" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">내용 / 메모</label>
+                            <textarea name="content" class="form-control"
+                                      placeholder="일정에 대한 상세 내용이나 메모를 입력하세요"
+                                      th:text="${schedule != null ? schedule.content : ''}"></textarea>
+                        </div>
+
+                        <!-- 일정 유형 토글 -->
+                        <div class="form-group">
+                            <label class="form-label">일정 유형</label>
+                            <div class="date-type-tabs">
+                                <button type="button" class="date-type-tab active" data-type="single">하루</button>
+                                <button type="button" class="date-type-tab" data-type="range">기간</button>
+                            </div>
+                        </div>
+
+                        <!-- 시작일 (기간 선택 시) -->
+                        <div id="startAtGroup" class="form-group" style="display:none;">
+                            <label class="form-label">시작일 *</label>
+                            <input type="datetime-local" name="startAt" id="startAtInput" class="form-control"
+                                   th:value="${schedule != null and schedule.startAt != null ? #temporals.format(schedule.startAt, 'yyyy-MM-dd''T''HH:mm') : ''}">
+                        </div>
+
+                        <!-- 종료일 / 일정일 -->
+                        <div class="form-group">
+                            <label class="form-label" id="scheduledAtLabel">일정일 *</label>
+                            <input type="datetime-local" name="scheduledAt" id="scheduledAtInput" class="form-control"
+                                   th:value="${schedule != null ? #temporals.format(schedule.scheduledAt, 'yyyy-MM-dd''T''HH:mm') : ''}"
+                                   required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">관련 멤버 태그</label>
+                            <select name="taggedMemberIds" class="form-control" multiple>
+                                <option th:each="member : ${members}"
+                                        th:value="${member.id}"
+                                        th:text="${member.name}"
+                                        th:selected="${taggedIds != null and #lists.contains(taggedIds, member.id)}">
+                                    멤버
+                                </option>
+                            </select>
+                            <span class="form-hint">Ctrl+클릭으로 여러 명을 선택할 수 있습니다</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary"
+                                    th:text="${schedule != null ? '수정' : '등록'}">등록</button>
+                            <a th:href="@{/schedule}" class="btn btn-secondary">취소</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+        <footer th:replace="~{fragments :: footer}"></footer>
+    </div>
+</div>
+<script th:src="@{/js/app.js}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tabs = document.querySelectorAll('.date-type-tab');
+    var startGroup = document.getElementById('startAtGroup');
+    var startInput = document.getElementById('startAtInput');
+    var label = document.getElementById('scheduledAtLabel');
+
+    function setType(type) {
+        tabs.forEach(function(t) { t.classList.toggle('active', t.dataset.type === type); });
+        if (type === 'range') {
+            startGroup.style.display = '';
+            startInput.required = true;
+            label.textContent = '종료일 *';
+        } else {
+            startGroup.style.display = 'none';
+            startInput.required = false;
+            startInput.value = '';
+            label.textContent = '일정일 *';
+        }
+    }
+
+    tabs.forEach(function(tab) {
+        tab.addEventListener('click', function() { setType(tab.dataset.type); });
+    });
+
+    if (startInput.value) setType('range');
+});
+</script>
+</body>
+</html>
