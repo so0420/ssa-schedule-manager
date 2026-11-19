@@ -2,7 +2,6 @@
 관리자(Admin) 컨트롤러 모듈.
 멤버 승인/거절/추방, 활동 로그 열람 등 관리자 전용 기능을 처리한다.
 유스케이스: E1(멤버 관리 — 승인/거절/추방), E2(활동 로그 열람)
-Java의 AdminController에 해당한다.
 """
 
 from fastapi import APIRouter, Request, Depends
@@ -27,19 +26,16 @@ class AdminController:
 
     def __init__(self, templates: Jinja2Templates):
         """
-        생성자: 템플릿 엔진을 주입받고, 라우터를 초기화한다.
+        생성자: 템플릿 엔진을 주입받고, 라우터와 서비스를 초기화한다.
         Args:
             templates: Jinja2 템플릿 엔진
         """
         self._templates = templates
+        self._member_svc = MemberService(
+            MemberRepository(), ActivityLogRepository(), ScheduleRepository()
+        )
         self.router = APIRouter(prefix="/admin")
         self._setup_routes()
-
-    def _build_service(self, db: Session) -> MemberService:
-        """요청마다 MemberService를 생성한다."""
-        return MemberService(
-            MemberRepository(db), ActivityLogRepository(db), ScheduleRepository(db)
-        )
 
     def _login_member(self, request: Request):
         """세션에서 로그인된 회원 정보(dict)를 가져온다."""
@@ -48,7 +44,6 @@ class AdminController:
     def _is_admin(self, request: Request) -> bool:
         """
         현재 로그인한 사용자가 관리자(ADMIN)인지 확인한다.
-        Java의 AdminController에서 loginMember.getRole() != Role.ADMIN 체크에 해당한다.
         Returns:
             관리자이면 True, 아니면 False
         """
@@ -57,11 +52,11 @@ class AdminController:
 
     def _setup_routes(self):
         """URL-메서드 매핑을 등록한다."""
-        self.router.add_api_route("/members", self._members, methods=["GET"])                           # 멤버 관리 페이지
-        self.router.add_api_route("/members/{member_id}/approve", self._approve, methods=["POST"])      # 회원 승인
-        self.router.add_api_route("/members/{member_id}/reject", self._reject, methods=["POST"])        # 회원 거절
-        self.router.add_api_route("/members/{member_id}/kick", self._kick, methods=["POST"])            # 멤버 추방
-        self.router.add_api_route("/logs", self._logs, methods=["GET"])                                 # 활동 로그
+        self.router.add_api_route("/members", self._members, methods=["GET"])
+        self.router.add_api_route("/members/{member_id}/approve", self._approve, methods=["POST"])
+        self.router.add_api_route("/members/{member_id}/reject", self._reject, methods=["POST"])
+        self.router.add_api_route("/members/{member_id}/kick", self._kick, methods=["POST"])
+        self.router.add_api_route("/logs", self._logs, methods=["GET"])
 
     # ==================== E1. 멤버 관리 ====================
 
@@ -70,13 +65,12 @@ class AdminController:
         GET /admin/members — 멤버 관리 페이지를 렌더링한다.
         가입 대기(PENDING) 목록과 승인된(APPROVED) 멤버 목록을 함께 표시한다.
         """
-        if not self._is_admin(request):  # 관리자 권한 체크
+        if not self._is_admin(request):
             return RedirectResponse(url="/", status_code=302)
-        svc = self._build_service(db)
         return self._templates.TemplateResponse("admin/members.html", {
             "request": request,
-            "pendingMembers": svc.get_pending_members(),      # 가입 대기 목록
-            "approvedMembers": svc.get_approved_members(),    # 승인된 멤버 목록
+            "pendingMembers": self._member_svc.get_pending_members(db),
+            "approvedMembers": self._member_svc.get_approved_members(db),
             "message": request.session.pop("message", None),
         })
 
@@ -88,8 +82,7 @@ class AdminController:
         if not self._is_admin(request):
             return RedirectResponse(url="/", status_code=302)
         login = self._login_member(request)
-        svc = self._build_service(db)
-        svc.approve_member(member_id, login["name"])  # 관리자 이름을 로그에 기록
+        self._member_svc.approve_member(db, member_id, login["name"])
         request.session["message"] = "회원이 승인되었습니다."
         db.commit()
         return RedirectResponse(url="/admin/members", status_code=302)
@@ -102,8 +95,7 @@ class AdminController:
         if not self._is_admin(request):
             return RedirectResponse(url="/", status_code=302)
         login = self._login_member(request)
-        svc = self._build_service(db)
-        svc.reject_member(member_id, login["name"])
+        self._member_svc.reject_member(db, member_id, login["name"])
         request.session["message"] = "회원이 거절되었습니다."
         db.commit()
         return RedirectResponse(url="/admin/members", status_code=302)
@@ -119,8 +111,7 @@ class AdminController:
         if not self._is_admin(request):
             return RedirectResponse(url="/", status_code=302)
         login = self._login_member(request)
-        svc = self._build_service(db)
-        svc.kick_member(member_id, login["name"])
+        self._member_svc.kick_member(db, member_id, login["name"])
         request.session["message"] = "멤버가 추방되었습니다."
         db.commit()
         return RedirectResponse(url="/admin/members", status_code=302)
@@ -131,8 +122,7 @@ class AdminController:
         """GET /admin/logs — 활동 로그 페이지를 렌더링한다 (최신순 정렬)."""
         if not self._is_admin(request):
             return RedirectResponse(url="/", status_code=302)
-        svc = self._build_service(db)
         return self._templates.TemplateResponse("admin/logs.html", {
             "request": request,
-            "logs": svc.get_all_logs(),  # 전체 활동 로그 (최신순)
+            "logs": self._member_svc.get_all_logs(db),
         })

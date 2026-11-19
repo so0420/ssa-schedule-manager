@@ -2,7 +2,6 @@
 서비스 정보 컨트롤러 모듈.
 이용약관, 개인정보처리방침 페이지를 처리한다.
 유스케이스: B2(이용약관 열람), B3(개인정보처리방침 열람)
-Java의 ServiceController에 해당한다.
 """
 
 from fastapi import APIRouter, Request
@@ -28,8 +27,8 @@ class ServiceController:
 
     def _setup_routes(self):
         """URL-메서드 매핑을 등록한다."""
-        self.router.add_api_route("/terms", self._terms, methods=["GET"])       # 이용약관
-        self.router.add_api_route("/privacy", self._privacy, methods=["GET"])   # 개인정보처리방침
+        self.router.add_api_route("/terms", self._terms, methods=["GET"])
+        self.router.add_api_route("/privacy", self._privacy, methods=["GET"])
 
     async def _terms(self, request: Request):
         """GET /service/terms — 이용약관 페이지를 렌더링한다 (유스케이스 B2)."""

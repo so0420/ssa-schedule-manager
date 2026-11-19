@@ -17,31 +17,26 @@ class ActivityLogRepository:
     (로그는 한 번 기록되면 변경하지 않는 것이 원칙)
     """
 
-    def __init__(self, db: Session):
-        """
-        생성자: DB 세션을 주입받는다.
-        Args:
-            db: SQLAlchemy 데이터베이스 세션
-        """
-        self._db = db  # 캡슐화
-
-    def find_all_order_by_created_at_desc(self) -> List[ActivityLog]:
+    def find_all_order_by_created_at_desc(self, db: Session) -> List[ActivityLog]:
         """
         모든 활동 로그를 최신순으로 조회한다.
         관리자 로그 열람 화면에서 사용된다.
+        Args:
+            db: SQLAlchemy 데이터베이스 세션
         Returns:
             전체 활동 로그 리스트 (최신순)
         """
-        return self._db.query(ActivityLog).order_by(ActivityLog.created_at.desc()).all()
+        return db.query(ActivityLog).order_by(ActivityLog.created_at.desc()).all()
 
-    def save(self, log: ActivityLog) -> ActivityLog:
+    def save(self, db: Session, log: ActivityLog) -> ActivityLog:
         """
         활동 로그를 저장한다.
         Args:
+            db: SQLAlchemy 데이터베이스 세션
             log: 저장할 ActivityLog 객체
         Returns:
             저장 완료된 ActivityLog 객체
         """
-        self._db.add(log)
-        self._db.flush()  # DB에 즉시 반영
+        db.add(log)
+        db.flush()
         return log
