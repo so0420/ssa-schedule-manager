@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}멤버 관리 - TeamSchedule{% endblock %}
+{% block page_title %}멤버 관리{% endblock %}
+{% block content %}
+
+{% if message %}
+<div class="alert alert-success">{{ message }}</div>
+{% endif %}
+
+<!-- 가입 대기 -->
+<div class="page-header">
+    <h1 class="page-title">가입 대기</h1>
+</div>
+
+{% if not pendingMembers %}
+<div class="empty-state" style="padding:2rem;">
+    <p>대기 중인 회원이 없습니다.</p>
+</div>
+{% else %}
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>이름</th>
+                <th>아이디</th>
+                <th>이메일</th>
+                <th>가입 신청일</th>
+                <th>작업</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in pendingMembers %}
+            <tr>
+                <td>{{ m.name }}</td>
+                <td>{{ m.login_id }}</td>
+                <td>{{ m.email }}</td>
+                <td>{{ m.created_at|datefmt('%Y-%m-%d') }}</td>
+                <td>
+                    <form action="/admin/members/{{ m.id }}/approve" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-primary">승인</button>
+                    </form>
+                    <form action="/admin/members/{{ m.id }}/reject" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-danger">거절</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- 활성 멤버 -->
+<div class="page-header" style="margin-top:2rem;">
+    <h1 class="page-title">활성 멤버</h1>
+</div>
+
+{% if not approvedMembers %}
+<div class="empty-state" style="padding:2rem;">
+    <p>활성 멤버가 없습니다.</p>
+</div>
+{% else %}
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>이름</th>
+                <th>아이디</th>
+                <th>이메일</th>
+                <th>역할</th>
+                <th>가입일</th>
+                <th>작업</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in approvedMembers %}
+            <tr>
+                <td>{{ m.name }}</td>
+                <td>{{ m.login_id }}</td>
+                <td>{{ m.email }}</td>
+                <td>{{ '관리자' if m.role == 'ADMIN' else '멤버' }}</td>
+                <td>{{ m.created_at|datefmt('%Y-%m-%d') }}</td>
+                <td>
+                    {% if m.role != 'ADMIN' %}
+                    <form action="/admin/members/{{ m.id }}/kick" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-danger" data-confirm="정말 추방하시겠습니까?">추방</button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}

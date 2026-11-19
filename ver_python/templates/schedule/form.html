@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ '일정 수정' if schedule else '새 일정' }} - TeamSchedule{% endblock %}
+{% block page_title %}{{ '일정 수정' if schedule else '새 일정 등록' }}{% endblock %}
+{% block content %}
+
+<div class="form-container">
+    <form action="{{ '/schedule/' ~ schedule.id ~ '/edit' if schedule else '/schedule/new' }}" method="post">
+        <div class="form-group">
+            <label class="form-label">일정 제목 *</label>
+            <input type="text" name="title" class="form-control"
+                   value="{{ schedule.title if schedule else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">내용</label>
+            <textarea name="content" class="form-control" rows="5">{{ schedule.content if schedule and schedule.content else '' }}</textarea>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">시작일</label>
+                <input type="datetime-local" name="startAt" class="form-control"
+                       value="{{ schedule.start_at|dtlocal if schedule and schedule.start_at else '' }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">마감일 *</label>
+                <input type="datetime-local" name="scheduledAt" class="form-control"
+                       value="{{ schedule.scheduled_at|dtlocal if schedule and schedule.scheduled_at else '' }}" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">태그 멤버</label>
+            <div class="checkbox-group">
+                {% for member in members %}
+                <label class="checkbox-label">
+                    <input type="checkbox" name="taggedMemberIds" value="{{ member.id }}"
+                           {{ 'checked' if member.id in taggedIds else '' }}>
+                    {{ member.name }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{{ '수정' if schedule else '등록' }}</button>
+            <a href="/schedule" class="btn btn-secondary">취소</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

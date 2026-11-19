@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}내 프로필 - TeamSchedule{% endblock %}
+{% block page_title %}내 프로필{% endblock %}
+{% block content %}
+
+{% if message %}
+<div class="alert alert-success">{{ message }}</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<div class="profile-grid">
+    <!-- 사용자 정보 -->
+    <div class="card">
+        <div class="card-header"><h3>기본 정보</h3></div>
+        <div class="card-body">
+            <div class="profile-info">
+                <div class="info-row">
+                    <span class="info-label">아이디</span>
+                    <span class="info-value">{{ member.login_id }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">이메일</span>
+                    <span class="info-value">{{ member.email }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">역할</span>
+                    <span class="info-value">{{ '관리자' if member.role == 'ADMIN' else '멤버' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">가입일</span>
+                    <span class="info-value">{{ member.created_at|datefmt('%Y-%m-%d') }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 이름 변경 -->
+    <div class="card">
+        <div class="card-header"><h3>이름 변경</h3></div>
+        <div class="card-body">
+            <form action="/member/update-name" method="post">
+                <div class="form-group">
+                    <label class="form-label">사용자명</label>
+                    <input type="text" name="name" class="form-control"
+                           value="{{ member.name }}" required>
+                </div>
+                <button type="submit" class="btn btn-primary">변경</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 비밀번호 변경 -->
+    <div class="card">
+        <div class="card-header"><h3>비밀번호 변경</h3></div>
+        <div class="card-body">
+            <form action="/member/update-password" method="post">
+                <div class="form-group">
+                    <label class="form-label">현재 비밀번호</label>
+                    <input type="password" name="currentPassword" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">새 비밀번호</label>
+                    <input type="password" name="newPassword" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary">비밀번호 변경</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 알림 설정 -->
+    <div class="card">
+        <div class="card-header"><h3>알림 설정</h3></div>
+        <div class="card-body">
+            <form action="/member/update-notification" method="post">
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="notificationEnabled" value="true"
+                               {{ 'checked' if member.notification_enabled else '' }}>
+                        알림 활성화
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Webhook URL</label>
+                    <input type="text" name="webhookUrl" class="form-control"
+                           value="{{ member.webhook_url or '' }}" placeholder="https://hooks.slack.com/...">
+                </div>
+                <button type="submit" class="btn btn-primary">저장</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 회원 탈퇴 -->
+    <div class="card card-danger">
+        <div class="card-header"><h3>회원 탈퇴</h3></div>
+        <div class="card-body">
+            <p>탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.</p>
+            <form action="/member/delete" method="post">
+                <button type="submit" class="btn btn-danger" data-confirm="정말 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.">회원 탈퇴</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
