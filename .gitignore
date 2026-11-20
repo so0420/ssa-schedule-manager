@@ -17,3 +17,6 @@ data/
 
 # Logs
 *.log
+
+# 별도 프로젝트 (이 저장소에 포함하지 않음)
+jamkubot/
