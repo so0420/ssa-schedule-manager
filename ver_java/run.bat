@@ -19,7 +19,7 @@ if errorlevel 1 if "%JAVA_HOME%"=="" (
 )
 
 echo 서버 시작: http://localhost:%PORT%  (종료: Ctrl+C)
-call gradlew.bat bootRun --args="--server.port=%PORT%"
+call "%~dp0gradlew.bat" bootRun --args="--server.port=%PORT%"
 set EXITCODE=%ERRORLEVEL%
 if not "%EXITCODE%"=="0" pause
 exit /b %EXITCODE%

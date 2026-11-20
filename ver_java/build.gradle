@@ -1,11 +1,14 @@
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.0'
-    id 'io.spring.dependency-management' version '1.1.4'
+    id 'io.spring.dependency-management' version '1.1.7'
 }
 
 group = 'com.teamschedule'
 version = '1.0.0'
+
+// JDK 25에서도 빌드되도록 Lombok 버전을 Spring Boot 기본값(1.18.30)보다 올린다
+ext['lombok.version'] = '1.18.42'
 
 java {
     sourceCompatibility = '17'
