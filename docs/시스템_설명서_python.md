@@ -859,24 +859,29 @@ role: ADMIN / approval_status: APPROVED
 | 파일명 | 다이어그램 종류 | 설명 |
 |--------|---------------|------|
 | `TeamSchedule.mdj` | StarUML 프로젝트 | 모든 다이어그램이 포함된 원본 파일 |
-| `UseCase_Diagram.png` | 유스케이스 다이어그램 | 팀원/관리자 액터, 15개 유스케이스, include 관계, 시스템 경계 |
-| `Class_Diagram.png` | 클래스 다이어그램 | Member, Schedule, ActivityLog 엔티티 + Role, ApprovalStatus 열거형 + Service 클래스, 연관/의존 관계 |
-| `Sequence_Login.png` | 시퀀스 다이어그램 (로그인) | 팀원 → Browser → AuthController → MemberService → MemberRepository 흐름. alt(로그인 성공/실패) 프래그먼트 포함 |
-| `Sequence_CreateSchedule.png` | 시퀀스 다이어그램 (일정 등록) | 팀원 → Browser → ScheduleController → ScheduleService → ScheduleRepository/ActivityLogRepository 흐름 |
-| `StateMachine_Schedule.png` | 상태 머신 다이어그램 (일정) | 등록됨 → 진행중 → 완료 → 삭제됨 상태 전이. 자동 완료(scheduled_at 경과) 포함 |
+| `UseCase_Diagram.png` | 유스케이스 다이어그램 | 팀원/관리자(팀원 일반화)/타이머 액터, 18개 유스케이스, 시스템 경계 |
+| `Class_Diagram_Entity.png` | 클래스 다이어그램 (엔티티) | Member, Schedule, ActivityLog 엔티티 + Role, ApprovalStatus 열거형, 연관 관계와 다중성 |
+| `Class_Diagram_Application.png` | 클래스 다이어그램 (애플리케이션) | Controller(«boundary») 5개, Service(«service») 2개, Repository(«interface») 3개, 엔티티 3개의 계층 구조와 연관 관계 |
+| `Sequence_Login_Success.png` | 시퀀스 다이어그램 (로그인 성공) | 팀원 → AuthController → MemberService → MemberRepository → HttpSession 주 시퀀스 |
+| `Sequence_Login_Failure.png` | 시퀀스 다이어그램 (로그인 실패) | 계정이 없거나 승인되지 않은 경우의 대안 시퀀스 |
+| `Sequence_CreateSchedule.png` | 시퀀스 다이어그램 (일정 등록) | 팀원 → ScheduleController → HttpSession/ScheduleService → MemberRepository/ScheduleRepository/ActivityLogRepository 흐름 |
+| `Communication_CreateSchedule.png` | 커뮤니케이션 다이어그램 (일정 등록) | 일정 등록 시퀀스와 같은 시나리오를 객체 간 연결 중심으로 표현 |
+| `StateMachine_Schedule.png` | 상태 머신 다이어그램 (일정) | 진행중 ↔ 완료 상태 전이. 완료 처리/취소, 자동 완료(scheduled_at 경과), 수정, 삭제 이벤트 포함 |
+| `StateMachine_Member.png` | 상태 머신 다이어그램 (회원) | 승인 대기 → 승인됨/거절됨 상태 전이. 탈퇴/추방 시 종료 |
+| `Activity_Login.png` | 액티비티 다이어그램 (로그인) | 로그인 유스케이스의 흐름. 계정 존재 여부와 승인 상태 분기, 실패 시 재시도 루프 |
 
 ---
 
 ## 10. 예상 질문 및 답변
 
-### Q1. 유스케이스 다이어그램에서 include 관계를 어디에 사용했고, 왜 사용했나?
-**A**: 프로필 관리, 일정 등록, 일정 수정, 일정 삭제, 회원 탈퇴 → 로그인 유스케이스에 `«include»` 관계를 사용했습니다. 이 기능들은 로그인 상태에서만 접근 가능하므로, 로그인이 선행 조건(전제 조건)이기 때문입니다. 코드에서는 `LoginMiddleware`의 `dispatch()`에서 세션의 `login_member`를 확인하여 이를 구현했습니다.
+### Q1. 유스케이스 다이어그램에서 로그인을 include 관계로 표현하지 않은 이유는?
+**A**: 유스케이스 다이어그램은 흐름도가 아니므로 유스케이스 간 선후 관계를 표현하지 않습니다. `«include»`는 여러 유스케이스에 공통으로 들어가는 상호작용을 분리할 때 쓰는 관계이고, "로그인한 상태여야 한다"는 것은 실행 순서에 대한 조건이므로 각 유스케이스 명세의 사전 조건(Precondition)에 적었습니다. 코드에서는 `LoginMiddleware`의 `dispatch()`에서 세션의 `login_member`를 확인하여 이를 구현했습니다. 관리자는 팀원의 기능을 모두 쓸 수 있으므로 액터 일반화로 표현했고, 1분마다 실행되는 자동 완료는 타이머 액터가 수행하는 유스케이스로 표현했습니다.
 
 ### Q2. 클래스 다이어그램에서 Member와 Schedule의 관계가 두 개인 이유는?
 **A**: 첫 번째는 `created_by` 관계로, 일정을 "누가 만들었는지"를 나타내는 N:1(다대일) 관계입니다 (`relationship("Member", foreign_keys=[created_by_id])`). 두 번째는 `tagged_members` 관계로, 일정에 "누가 관련되어 있는지"를 나타내는 N:M(다대다) 관계입니다 (`relationship("Member", secondary=schedule_tag)`). 하나의 일정은 한 명이 만들지만, 여러 멤버를 태그할 수 있고, 한 멤버도 여러 일정에 태그될 수 있습니다.
 
-### Q3. 시퀀스 다이어그램에서 alt 프래그먼트를 어디에 사용했는가?
-**A**: 로그인 시퀀스 다이어그램에서 사용했습니다. `MemberService.login()`의 반환값에 따라 [로그인 성공] 분기에서는 세션에 회원 정보 딕셔너리를 저장하고 대시보드로 리다이렉트하고, [로그인 실패] 분기에서는 에러 메시지와 함께 로그인 페이지로 리다이렉트합니다.
+### Q3. 로그인의 성공/실패 분기는 시퀀스 다이어그램에서 어떻게 표현했는가?
+**A**: 하나의 다이어그램에 분기를 넣지 않고 주 시퀀스(성공)와 대안 시퀀스(실패)를 각각의 시퀀스 다이어그램으로 나누어 그렸습니다. `MemberService.login()`이 회원을 반환하면(승인 상태 = APPROVED) 세션에 회원 정보 딕셔너리를 저장하고 홈 화면으로 리다이렉트하며, 계정이 없거나 승인되지 않아 반환값이 없으면 에러 메시지와 함께 로그인 페이지로 리다이렉트합니다. 분기 조건은 응답 메시지의 가드 `[조건]`으로 표기했습니다.
 
 ### Q4. 인증은 어떻게 구현했는가?
 **A**: 별도 인증 라이브러리 대신 Starlette의 `SessionMiddleware`와 커스텀 `LoginMiddleware`로 직접 구현했습니다. 로그인 성공 시 `request.session["login_member"] = member.to_session_dict()`로 세션에 사용자 정보를 딕셔너리로 저장합니다. 이후 모든 요청은 `LoginMiddleware.dispatch()`를 거치며, 세션에 `login_member`가 없으면 로그인 페이지로 리다이렉트됩니다. `/auth`, `/service`, `/static` 경로는 `EXCLUDE_PREFIXES`로 인증에서 제외합니다.
@@ -888,12 +893,14 @@ role: ADMIN / approval_status: APPROVED
 **A**: `Schedule` 엔티티에 `start_at`(시작일)과 `scheduled_at`(종료일/단일일정일) 두 필드를 두었습니다. `start_at`이 `None`이면 단일일 일정, 값이 있으면 기간 일정입니다. 프론트엔드에서 "하루/기간" 토글 버튼으로 선택하며, "하루" 선택 시 `start_at` 입력 필드가 숨겨지고 값이 비워집니다. Controller에서 `startAt` 파라미터가 비어있으면 `None`으로 변환하여 Service에 전달합니다. 캘린더/간트 차트에서는 `start_at`이 있으면 해당 기간에 걸쳐 표시합니다.
 
 ### Q7. 상태 머신 다이어그램의 각 상태 전이 조건은?
-**A**: 일정의 상태 전이는 다음과 같습니다:
-- **[초기] → 등록됨**: 사용자가 일정을 등록하면 `completed = False` 상태로 생성
-- **등록됨 → 진행중**: `start_at` 시각이 도달하면 (논리적 상태 — DB에 별도 상태 필드 없이 시간 비교로 판단)
-- **진행중 → 완료**: 사용자가 "완료 처리" 버튼 클릭 (`toggle_complete()`), 또는 `scheduled_at`이 경과하면 시스템이 자동으로 완료 처리 (백그라운드 스레드, 60초 간격)
-- **완료 → 진행중**: 사용자가 "미완료로 변경" 버튼 클릭 (토글 방식)
-- **등록됨/진행중/완료 → 삭제됨**: 사용자가 "삭제" 버튼 클릭
+**A**: 일정(Schedule)의 상태는 `completed` 필드 값에 대응하는 **진행중**과 **완료** 두 가지입니다:
+- **[초기] → 진행중**: 사용자가 일정을 등록하면 `completed = False` 상태로 생성
+- **진행중 → 완료**: "완료 처리됨" 이벤트 (`toggle_complete()`), 또는 "마감 시각(scheduled_at) 경과" 이벤트로 시스템이 자동 완료 처리 (백그라운드 스레드, 60초 간격)
+- **완료 → 진행중**: "완료 취소됨" 이벤트 (토글 방식)
+- **진행중 → 진행중, 완료 → 완료**: "일정 수정됨" 이벤트. 수정은 상태를 바꾸지 않음
+- **진행중/완료 → [종료]**: "일정 삭제됨" 이벤트
+
+전이 라벨은 `이벤트 / 액션` 형식이며, 액션은 활동 로그 기록입니다. 회원(Member)은 별도 상태 머신으로 그렸습니다: 가입 시 **승인 대기**, 관리자 승인 시 **승인됨**, 거절 시 **거절됨**이 되고, 승인된 회원이 탈퇴하거나 추방되면 종료됩니다.
 
 ### Q8. MVC 패턴이 코드에 어떻게 적용되어 있는가?
 **A**: 
